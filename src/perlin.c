@@ -51,6 +51,7 @@ double lerp(double t, double a, double b) {
     return a + t * (b - a);
 }
 
+// NOTE: This returns numbers in [-1, 1]
 double perlin_noise3(double ix, double iy, double iz) {
     int X = (int)floor(ix) & 255;
     int Y = (int)floor(iy) & 255;

@@ -5,12 +5,78 @@
 #include<SDL2/SDL.h>
 #include<perlin.h>
 #include<app.h>
+#include<color.h>
 
 SDL_app* app;
 
 void on_exit() {
     SDL_DestroyWindow(app->window);
     SDL_Quit();
+}
+
+void handle_keydown(SDL_Event e) {
+    SDL_Keycode key = e.key.keysym.sym;
+
+    switch (key) {
+        // Grid movements
+        case SDLK_UP:
+        case SDLK_w:
+            app->render_start_y -= 0.1;
+            app->render = true;
+            break;
+        case SDLK_DOWN:
+        case SDLK_s:
+            app->render_start_y += 0.1;
+            app->render = true;
+            break;
+        case SDLK_LEFT:
+        case SDLK_a:
+            app->render_start_x -= 0.1;
+            app->render = true;
+            break;
+        case SDLK_RIGHT:
+        case SDLK_d:
+            app->render_start_x += 0.1;
+            app->render = true;
+            break;
+        case SDLK_z:
+            app->cf_index = (app->cf_index + 1) % color_functions_count;
+            app->render = true;
+            break;
+        
+        // Frequency control
+        case SDLK_KP_1:
+            app->frequency -= 0.5;
+            app->render = true;
+            break;
+        case SDLK_KP_2:
+            app->frequency += 0.5;
+            app->render = true;
+            break;
+        
+        // Amplitude control
+        case SDLK_KP_4:
+            app->amplitude -= 0.5;
+            app->render = true;
+            break;
+        case SDLK_KP_5:
+            app->amplitude += 0.5;
+            app->render = true;
+            break;
+        
+        // Octave count control
+        case SDLK_KP_7:
+            app->octave_count -= 1;
+            app->render = true;
+            break;
+        case SDLK_KP_8:
+            app->octave_count += 1;
+            app->render = true;
+            break;
+
+        default:
+            break;
+    }
 }
 
 void handle_events() {
@@ -22,9 +88,27 @@ void handle_events() {
                 printf("Received SDL_QUIT, informing the mainloop to stop.\n");
                 app->running = false;
                 break;
+            case SDL_KEYDOWN:
+                handle_keydown(e);
+                break;
+            case SDL_WINDOWEVENT:
+                if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
+                    app->resized = true;
+                    app->render = true;
+                }
+                break;
             default:
                 break;
         }
+    }
+}
+
+void tick() {
+    if (app->resized) {
+        SDL_GetWindowSize(app->window, &app->screen_width, &app->screen_height);
+        SDL_DestroyRenderer(app->renderer);
+        app->renderer = SDL_CreateRenderer(app->window, -1, SDL_RENDERER_ACCELERATED);
+        app->resized = false;
     }
 }
 
@@ -45,18 +129,21 @@ void render() {
                 .h = app->cell_height
             };
 
-            double noise = perlin_noise2(
-                (double)row * 0.1,
-                (double)col * 0.1
-            );
+            double total_noise = 0.0;
+            double cur_freq = app->frequency;
+            double cur_amp = app->amplitude;
 
-            SDL_SetRenderDrawColor(
-                renderer,
-                (int)(noise * 0xFF),
-                (int)(noise * 0xFF),
-                (int)(noise * 0xFF),
-                0xFF
-            );
+            for (int i = 0; i < app->octave_count; i++) {
+                double noise = perlin_noise2(
+                    (app->render_start_x + (double)col * 0.1) * cur_freq,
+                    (app->render_start_y + (double)row * 0.1) * cur_freq
+                );
+                total_noise += (cur_amp * noise);
+                cur_amp *= 0.5;
+                cur_freq *= 2.0;
+            }
+
+            color_functions[app->cf_index](renderer, total_noise);
             SDL_RenderFillRect(renderer, &rect);
         }
     }
@@ -66,14 +153,27 @@ void render() {
 
 int main(int argc, char* args[]) {
     app = (SDL_app*) malloc(sizeof(SDL_app));
+    app->running = false;
+    app->framerate = 30;
+
     app->screen_width = 800;
     app->screen_height = 500;
     app->cell_width = 5;
     app->cell_height = 5;
-    app->framerate = 30;
-    app->running = false;
+
+    app->amplitude = 1.0;
+    app->frequency = 1.0;
+    app->octave_count = 1;
+
+    app->render_start_x = 0.0;
     app->renderer = NULL;
     app->window = NULL;
+    app->render_start_y = 0.0;
+
+    app->resized = false;
+    app->cf_index = 0;
+    app->render = true;
+
 
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
         printf("SDL Error: %s\n", SDL_GetError());
@@ -87,7 +187,7 @@ int main(int argc, char* args[]) {
         SDL_WINDOWPOS_UNDEFINED,
         app->screen_width,
         app->screen_height,
-        0
+        SDL_WINDOW_RESIZABLE
     );
     app->window = window;
     if (window == NULL) {
@@ -116,7 +216,11 @@ int main(int argc, char* args[]) {
     printf("Entering mainloop.\n");
     while (app->running) {
         handle_events();
-        render();
+        tick();
+        if (app->render) {
+            render();
+            app->render = false;
+        }
         SDL_Delay(1000 / app->framerate);
     }
 
