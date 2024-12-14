@@ -1,5 +1,6 @@
 #pragma once
 #include<SDL2/SDL.h>
+#include<SDL2/SDL_image.h>
 #include<stdbool.h>
 #include<color.h>
 
@@ -24,4 +25,6 @@ typedef struct SDL_app {
     bool resized;
     int cf_index;
     bool render;
+
+    SDL_Texture* img_controls;
 } SDL_app;

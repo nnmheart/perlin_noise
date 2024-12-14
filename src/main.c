@@ -3,6 +3,7 @@
 #include<malloc.h>
 #include<stdbool.h>
 #include<SDL2/SDL.h>
+#include<SDL2/SDL_image.h>
 #include<perlin.h>
 #include<app.h>
 #include<color.h>
@@ -11,6 +12,7 @@ SDL_app* app;
 
 void on_exit() {
     SDL_DestroyWindow(app->window);
+    SDL_DestroyTexture(app->img_controls);
     SDL_Quit();
 }
 
@@ -147,8 +149,31 @@ void render() {
             SDL_RenderFillRect(renderer, &rect);
         }
     }
+}
 
-    SDL_RenderPresent(renderer);
+void initialize_textures() {
+    app->img_controls = IMG_LoadTexture(app->renderer, "controls.png");
+    if (app->img_controls == NULL) {
+        printf("Unable to load controls image.\n");
+        printf("SDL Error: %s\n", SDL_GetError());
+        exit(EXIT_FAILURE);
+    }
+}
+
+void render_controls() {
+    int w = 160;
+    int h = 180;
+    SDL_Rect area = {
+        .x = app->screen_width - w,
+        .y = app->screen_height - h,
+        .w = w,
+        .h = h
+    };
+    if (SDL_RenderCopy(app->renderer, app->img_controls, NULL, &area) != 0) {
+        printf("Unable to render controls image.\n");
+        printf("SDL Error: %s\n", SDL_GetError());
+        exit(EXIT_FAILURE);
+    }
 }
 
 int main(int argc, char* args[]) {
@@ -209,6 +234,7 @@ int main(int argc, char* args[]) {
         return 1;
     }
     printf("Created renderer.\n");
+    initialize_textures();
 
     atexit(on_exit);
     app->running = true;
@@ -218,8 +244,10 @@ int main(int argc, char* args[]) {
         handle_events();
         tick();
         if (app->render) {
-            render();
             app->render = false;
+            render();
+            render_controls();
+            SDL_RenderPresent(app->renderer);
         }
         SDL_Delay(1000 / app->framerate);
     }
