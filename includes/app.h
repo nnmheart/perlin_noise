@@ -13,6 +13,9 @@ typedef struct SDL_app {
     int cell_width;
     int cell_height;
 
+    int mouse_x;
+    int mouse_y;
+
     double amplitude;
     double frequency;
     int octave_count;

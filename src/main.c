@@ -81,6 +81,25 @@ void handle_keydown(SDL_Event e) {
     }
 }
 
+void handle_mouse_movement(SDL_Event e) {
+    if ((e.button.button == SDL_BUTTON_LEFT) && (app->mouse_x != -1)) {
+        // NOTE: mouse_x and mouse_y are updated after this if statement
+        // But until then, it is the LAST saved mouse coordinates.
+        int dx = e.motion.x - app->mouse_x;
+        int dy = e.motion.y - app->mouse_y;
+
+        app->render_start_x += (0.05 * (double)dx * -1);
+        app->render_start_y += (0.05 * (double)dy * -1);
+        app->render = true;
+    }
+    app->mouse_x = e.motion.x;
+    app->mouse_y = e.motion.y;
+}
+
+void handle_mouse(SDL_Event e) {
+    if (e.type == SDL_MOUSEMOTION) handle_mouse_movement(e);
+}
+
 void handle_events() {
     SDL_Event e;
 
@@ -98,6 +117,9 @@ void handle_events() {
                     app->resized = true;
                     app->render = true;
                 }
+                break;
+            case SDL_MOUSEMOTION:
+                handle_mouse(e);
                 break;
             default:
                 break;
@@ -188,6 +210,9 @@ int main(int argc, char* args[]) {
     app->screen_height = 500;
     app->cell_width = 5;
     app->cell_height = 5;
+
+    app->mouse_x = -1;
+    app->mouse_y = -1;
 
     app->amplitude = 1.0;
     app->frequency = 1.0;
