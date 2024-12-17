@@ -105,12 +105,24 @@ void handle_events() {
     }
 }
 
+
+void initialize_textures() {
+    app->img_controls = IMG_LoadTexture(app->renderer, "controls.png");
+    if (app->img_controls == NULL) {
+        printf("Unable to load controls image.\n");
+        printf("SDL Error: %s\n", SDL_GetError());
+        exit(EXIT_FAILURE);
+    }
+}
+
 void tick() {
     if (app->resized) {
         SDL_GetWindowSize(app->window, &app->screen_width, &app->screen_height);
+        SDL_DestroyTexture(app->img_controls);
         SDL_DestroyRenderer(app->renderer);
         app->renderer = SDL_CreateRenderer(app->window, -1, SDL_RENDERER_ACCELERATED);
         app->resized = false;
+        initialize_textures();
     }
 }
 
@@ -148,15 +160,6 @@ void render() {
             color_functions[app->cf_index](renderer, total_noise);
             SDL_RenderFillRect(renderer, &rect);
         }
-    }
-}
-
-void initialize_textures() {
-    app->img_controls = IMG_LoadTexture(app->renderer, "controls.png");
-    if (app->img_controls == NULL) {
-        printf("Unable to load controls image.\n");
-        printf("SDL Error: %s\n", SDL_GetError());
-        exit(EXIT_FAILURE);
     }
 }
 
