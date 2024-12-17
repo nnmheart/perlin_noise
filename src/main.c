@@ -96,8 +96,14 @@ void handle_mouse_movement(SDL_Event e) {
     app->mouse_y = e.motion.y;
 }
 
+void handle_mouse_scroll(SDL_Event e) {
+    app->zoom -= e.wheel.y * 0.1;
+    app->render = true;
+}
+
 void handle_mouse(SDL_Event e) {
     if (e.type == SDL_MOUSEMOTION) handle_mouse_movement(e);
+    if (e.type == SDL_MOUSEWHEEL) handle_mouse_scroll(e);
 }
 
 void handle_events() {
@@ -119,6 +125,7 @@ void handle_events() {
                 }
                 break;
             case SDL_MOUSEMOTION:
+            case SDL_MOUSEWHEEL:
                 handle_mouse(e);
                 break;
             default:
@@ -171,8 +178,8 @@ void render() {
 
             for (int i = 0; i < app->octave_count; i++) {
                 double noise = perlin_noise2(
-                    (app->render_start_x + (double)col * 0.1) * cur_freq,
-                    (app->render_start_y + (double)row * 0.1) * cur_freq
+                    (app->render_start_x + (double)col * 0.1) * cur_freq * app->zoom,
+                    (app->render_start_y + (double)row * 0.1) * cur_freq * app->zoom
                 );
                 total_noise += (cur_amp * noise);
                 cur_amp *= 0.5;
@@ -217,6 +224,7 @@ int main(int argc, char* args[]) {
     app->amplitude = 1.0;
     app->frequency = 1.0;
     app->octave_count = 1;
+    app->zoom = 1.0;
 
     app->render_start_x = 0.0;
     app->renderer = NULL;

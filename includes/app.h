@@ -19,6 +19,7 @@ typedef struct SDL_app {
     double amplitude;
     double frequency;
     int octave_count;
+    double zoom;
     
     SDL_Window* window;
     SDL_Renderer* renderer;
